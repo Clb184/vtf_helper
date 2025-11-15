@@ -30,7 +30,7 @@ RootWindow::~RootWindow() {
 
 void RootWindow::Move() {
 	// Window itself
-	ImGui::SetNextWindowPos({0.0f, 0.0f});
+	/*ImGui::SetNextWindowPos({0.0f, 0.0f});
 	ImGui::SetNextWindowSize({m_Width, m_Height});
 	ImGui::Begin("vtftool_root", nullptr,
 	       	ImGuiWindowFlags_NoCollapse |
@@ -40,7 +40,7 @@ void RootWindow::Move() {
 	       	ImGuiWindowFlags_NoTitleBar |
 	       	ImGuiWindowFlags_NoBringToFrontOnFocus |
 		ImGuiWindowFlags_NoSavedSettings
-		);
+		);*/
 
 	// The menu bar where some useful stuff is
 	ImGui::BeginMainMenuBar();
@@ -63,6 +63,9 @@ void RootWindow::Move() {
 	// Move base paths window
 	MoveBaseVars();
 
+	// Material outputs and that
+	MoveMaterialOutputs();
+
 	// Texture convert
 	MoveTexConvert();
 
@@ -70,7 +73,7 @@ void RootWindow::Move() {
 	MoveMaterialConstructors();
 
 	// End main window
-	ImGui::End();
+	//ImGui::End();
 
 }
 
@@ -133,6 +136,25 @@ void RootWindow::MoveMaterialConstructors() {
 			i--;
 		}
 	}	
+}
+
+void RootWindow::MoveMaterialOutputs() {
+	ImGui::Begin("Material Outputs", nullptr, ImGuiWindowFlags_NoSavedSettings);
+	if(ImGui::Button("Add output")) {
+		m_OutputsList.emplace_back();
+	}
+	ImGui::BeginGroup();
+	for(int i = 0; i < m_OutputsList.size(); i++) {
+		std::string id = "##out_name" + std::to_string(i);
+		ImGui::SetNextItemWidth(100.0f);
+		ImGui::InputText(id.c_str(), &m_OutputsList[i].name);
+		ImGui::SameLine();
+		ImGui::Text("Texture id");
+		ImGui::SameLine();
+		ImGui::Text("Material temp");
+	}
+	ImGui::EndGroup();
+	ImGui::End();
 }
 
 #ifdef WIN32

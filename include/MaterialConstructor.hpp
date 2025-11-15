@@ -29,7 +29,11 @@ struct value_node_t {
 		float float4[4];
 	};
 	std::string string;
-	value_node_t(NODE_TYPE ty) { type = ty; memset(float4, 0, sizeof(float4)); }
+	value_node_t(NODE_TYPE ty) { 
+		type = ty;
+	       	memset(float4, 0, sizeof(float4));
+		if(ty == NODE_COLOR) float4[3] = 1.0f;
+       	}
 };
 
 class MaterialConstructor {
