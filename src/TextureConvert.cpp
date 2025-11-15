@@ -1,6 +1,7 @@
 #include "TextureConvert.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "RootWindow.hpp"
 
 TextureConvert::TextureConvert(int id) {
 	m_InternalName = "texture " + std::to_string(id); 
@@ -10,7 +11,7 @@ TextureConvert::TextureConvert(int id) {
 	m_CreateOptions.uiVersion[0] = 7;
 	m_CreateOptions.uiVersion[1] = 2;
 	m_CreateOptions.ImageFormat = IMAGE_FORMAT_DXT5;
-	m_CreateOptions.uiFlags = TEXTUREFLAGS_TRILINEAR;
+	m_CreateOptions.uiFlags = 0;
 	m_CreateOptions.uiStartFrame = 0;
 	m_CreateOptions.sBumpScale = 1.0f;
 	m_CreateOptions.bMipmaps = true;
@@ -44,7 +45,7 @@ TextureConvert::TextureConvert(int id, const char* filename) {
 	m_CreateOptions.uiVersion[0] = 7;
 	m_CreateOptions.uiVersion[1] = 2;
 	m_CreateOptions.ImageFormat = IMAGE_FORMAT_DXT5;
-	m_CreateOptions.uiFlags = TEXTUREFLAGS_TRILINEAR;
+	m_CreateOptions.uiFlags = 0;
 	m_CreateOptions.uiStartFrame = 0;
 	m_CreateOptions.sBumpScale = 1.0f;
 	m_CreateOptions.bMipmaps = true;
@@ -98,7 +99,8 @@ bool TextureConvert::Move() {
 	ImGui::InputText("##output_image", m_OutputName, 1024);
 	ImGui::SameLine();
 	if(ImGui::Button("Save file")){
-		}
+		SaveFile(RootWindow::GetMaterialPath());
+	}
 	ImGui::EndGroup();
 
 	ImGui::Image(m_TextureID, {256.0f, 256.0f});

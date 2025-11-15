@@ -1,6 +1,8 @@
 #include "RootWindow.hpp"
 #include "imgui_stdlib.h"
 
+std::string RootWindow::m_MaterialPath;
+
 RootWindow::RootWindow(float width, float height) 
 	: m_Width(width), m_Height(height) 
 {
@@ -55,6 +57,10 @@ void RootWindow::Move() {
 
 }
 
+const std::filesystem::path RootWindow::GetMaterialPath() {
+	return m_MaterialPath;
+}
+
 void RootWindow::MoveBaseVars() {
 	ImGui::Begin("##Paths", nullptr, ImGuiWindowFlags_NoSavedSettings);
 	ImGui::Text("Material path");
@@ -62,7 +68,6 @@ void RootWindow::MoveBaseVars() {
 	ImGui::InputText("##input_path", &m_MaterialPath);
 	if(ImGui::Button("Convert materials")) {
 		for(auto& cvt : m_CvtInstances){
-			//m_MaterialPath = m_MaterialPathIn;		
 			cvt.SaveFile(m_MaterialPath);
 		}
 	}
