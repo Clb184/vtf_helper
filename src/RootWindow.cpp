@@ -1,9 +1,12 @@
 #include "RootWindow.hpp"
+#include "imgui_stdlib.h"
 
 RootWindow::RootWindow(float width, float height) 
 	: m_Width(width), m_Height(height) 
 {
 	m_TexConvID = 0;
+	//memset(m_MaterialPath, 0, 1024 + 4);
+	m_bOpenFirstTime = false;
 }
 
 RootWindow::~RootWindow() {
@@ -37,12 +40,33 @@ void RootWindow::Move() {
 	}
 	ImGui::EndMainMenuBar();
 	
+	// Window with the paths
+	if(!m_bOpenFirstTime) { 
+		ImGui::SetNextWindowSize({256.0f, 96.0f}); 
+		m_bOpenFirstTime = true;
+	}
+	MoveBaseVars();
+
 	// Texture convert
 	MoveTexConvert();
 
 	// End main window
 	ImGui::End();
 
+}
+
+void RootWindow::MoveBaseVars() {
+	ImGui::Begin("##Paths", nullptr, ImGuiWindowFlags_NoSavedSettings);
+	ImGui::Text("Material path");
+	ImGui::SameLine();
+	ImGui::InputText("##input_path", &m_MaterialPath);
+	if(ImGui::Button("Convert materials")) {
+		for(auto& cvt : m_CvtInstances){
+			//m_MaterialPath = m_MaterialPathIn;		
+			cvt.SaveFile(m_MaterialPath);
+		}
+	}
+	ImGui::End();
 }
 
 void RootWindow::MoveTexConvert() {

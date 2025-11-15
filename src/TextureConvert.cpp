@@ -98,19 +98,7 @@ bool TextureConvert::Move() {
 	ImGui::InputText("##output_image", m_OutputName, 1024);
 	ImGui::SameLine();
 	if(ImGui::Button("Save file")){
-		if(nullptr != m_pPixelData) {
-			bool created = m_VTFFile.Create(m_Width, m_Height, m_pPixelData, m_CreateOptions);
-			if(created) {
-				printf("Converted to VTF\n");
-				m_VTFFile.Save(m_OutputName);
-				printf("Saving converted VTF file\n");
-			} else {
-				printf("Error converting file: %s\n", vlGetLastError());
-			}
-		} else {
-			printf("Attempted to save null data\n");
 		}
-	}
 	ImGui::EndGroup();
 
 	ImGui::Image(m_TextureID, {256.0f, 256.0f});
@@ -157,6 +145,32 @@ bool TextureConvert::Move() {
 
 void TextureConvert::SetDelete() {
 	m_bAvoidFree = false;
+}
+
+void TextureConvert::SaveFile(const std::filesystem::path& base_path) {
+	if(nullptr != m_pPixelData) {
+		bool created = m_VTFFile.Create(m_Width, m_Height, m_pPixelData, m_CreateOptions);
+		if(created) {
+			printf("Converted to VTF\n");
+			std::filesystem::path path = base_path / std::string(m_OutputName);
+			printf("Path is: %s\n", path.string().c_str());
+			printf("Parent directory is %s\n", path.parent_path().string().c_str());
+			printf("Filename is %s\n", path.filename().string().c_str());
+			if(!std::filesystem::exists(path.parent_path())){
+				printf("Path %s doesn't exist, creating it\n", path.parent_path().string().c_str());
+				std::filesystem::create_directory(path.parent_path());
+			}
+			if(m_VTFFile.Save(path.string().c_str())) {
+				printf("Saving converted VTF file\n");
+			} else {
+				printf("Error converting VTF file\n");
+			}
+		} else {
+			printf("Error converting file: %s\n", vlGetLastError());
+		}
+	} else {
+		printf("Attempted to save null data\n");
+	}
 }
 
 bool TextureConvert::LoadTextureFromFile(const char* filename) {

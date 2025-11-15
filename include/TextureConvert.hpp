@@ -6,6 +6,7 @@
 #include "GL/glew.h"
 #include <stdint.h>
 #include <string>
+#include <filesystem>
 
 // Texture convert window and its contents
 class TextureConvert {
@@ -17,6 +18,7 @@ public:
 	bool Move();
 	bool ConvertToVTF(VTFImageFormat format);
 	void SetDelete();
+	void SaveFile(const std::filesystem::path& base_path);
 private:
 	bool LoadTextureFromFile(const char* filename);
 #ifdef WIN32
