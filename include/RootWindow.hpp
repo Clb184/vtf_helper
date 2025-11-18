@@ -29,6 +29,7 @@ private:
 
 #ifdef WIN32
 	void OpenTextureDialogWindows();
+	void OpenMaterialTemplateDialogWindows();
 #endif
 
 	void CreateMaterialConstructor();

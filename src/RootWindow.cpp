@@ -46,20 +46,29 @@ void RootWindow::Move() {
 	ImGui::BeginMainMenuBar();
 	if(ImGui::MenuItem("Load Texture")) {
 #ifdef WIN32
+		// Implementation for Windows
 		OpenTextureDialogWindows();
 #endif
 	}
 	if(ImGui::MenuItem("Create Material")) {
+		// Create empty material template
 		CreateMaterialConstructor();
+	}
+	if(ImGui::MenuItem("Load Material Preset")) {
+		// Do some material preset loading
 	}
 	ImGui::EndMainMenuBar();
 	
 	// Move base paths window
+	if(!m_bOpenFirstTime) {
+		ImGui::SetNextWindowPos({64.0f, 80.0f});
+	}
 	MoveBaseVars();
 
 	// Window with the outputs at first init
 	if(!m_bOpenFirstTime) { 
 		ImGui::SetNextWindowSize({500.0f, 100.0f}); 
+		ImGui::SetNextWindowPos({64.0f, 192.0f});
 		m_bOpenFirstTime = true;
 	}
 
@@ -298,6 +307,82 @@ void RootWindow::OpenTextureDialogWindows() {
 	}  
 }
 
+void RootWindow::OpenMaterialTemplateDialogWindows() {
+    	std::wstring strw;
+	std::string stra = "";
+	//File Dialog
+	HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED |
+		COINIT_DISABLE_OLE1DDE);
+	COMDLG_FILTERSPEC filter;
+	filter.pszName = L"Image files";
+	filter.pszSpec = L"*.png; *.jpg; *.tga; *.bmp";
+	if (SUCCEEDED(hr))
+	{
+		IFileOpenDialog* pFileOpen;
+
+		// Create the FileOpenDialog object.
+		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
+			IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+		hr = pFileOpen->SetFileTypes(1, &filter);
+		FILEOPENDIALOGOPTIONS options;
+		pFileOpen->GetOptions(&options);
+		pFileOpen->SetOptions(options | FOS_ALLOWMULTISELECT);
+
+		if (SUCCEEDED(hr))
+		{
+			// Show the Open dialog box.
+			hr = pFileOpen->Show(NULL);
+
+			// Get the file name from the dialog box.
+			if (SUCCEEDED(hr))
+			{
+				IShellItemArray* items;
+				hr = pFileOpen->GetResults(&items);
+				printf("Trying to get result\n");
+				if (SUCCEEDED(hr))
+				{
+					DWORD cnt = 0;
+					items->GetCount(&cnt);
+					for(int i = 0; i < cnt; i++) {
+						IShellItem* item;
+						hr = items->GetItemAt(i, &item);
+						if(SUCCEEDED(hr)) {
+							PWSTR filepath;
+							hr = item->GetDisplayName(SIGDN_FILESYSPATH, &filepath);
+							printf("Trying to get DisplayName\n");
+							// Display the file name to the user.
+							if (SUCCEEDED(hr)) {
+								size_t nbs = wcslen(filepath) * sizeof(wchar_t);
+								char* filepathc = (char*)calloc(nbs, 1);
+								size_t sz = 0;
+								printf("Selection: %ls\n", filepath);
+								wcstombs_s(&sz, filepathc, nbs, filepath, wcslen(filepath));
+
+								printf("Load texture\n");
+								m_CvtInstances.emplace_back(m_TexConvID, filepathc);
+								printf("Added texconvert instance at %d with ID %d\n",
+				      				 	m_CvtInstances.size() -1,
+									m_TexConvID
+			     					);
+								m_TexConvID++;
+								CoTaskMemFree(filepath);
+							}
+						}
+						item->Release();
+					}
+					items->Release();
+				} else {
+					printf("HRESULT: %x", hr);
+				}
+			}
+			pFileOpen->Release();
+		}
+		CoUninitialize();
+	}  
+}
+
+#endif
+
 void RootWindow::CreateMaterialConstructor(){
 	printf("Create Material Constructor\n");
 	m_MatCInstances.emplace_back(m_MatConstID);
@@ -320,4 +405,3 @@ void RootWindow::RemoveMaterialFromOutputs(int id) {
 		o.template_material -= (o.template_material >= id);
 	}
 }
-#endif

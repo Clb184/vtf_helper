@@ -119,7 +119,14 @@ bool TextureConvert::Move() {
 	if(ImGui::Button("Load texture")) {
 #ifdef WIN32
 		memset(m_InputName, 0x00, 1024 + 1);
-		OpenDialogWindows(m_InputName, 1024);
+		std::string input;
+		COMDLG_FILTERSPEC filter;
+		filter.pszName = L"Image files";
+		filter.pszSpec = L"*.png; *.jpg; *.tga; *.bmp";
+
+		CreateSingleSelectDialogWindows(&filter, 1, &input);
+		memcpy(m_InputName, input.data(), input.length());
+		//OpenDialogWindows(m_InputName, 1024);
 #endif
 		printf("%s\n", m_InputName);
 		if(nullptr != m_pPixelData) {
