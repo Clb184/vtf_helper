@@ -19,7 +19,7 @@ int main() {
 	//glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 	int winw = 1280, winh = 720;
 	// Create window
-	GLFWwindow* window = glfwCreateWindow(winw, winh, "test", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(winw, winh, "VTF Workbench", NULL, NULL);
 	if(nullptr == window) { std::cout << "Failed creating window\n"; return -1; }
 
 	glfwMakeContextCurrent(window);
