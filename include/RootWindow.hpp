@@ -32,9 +32,13 @@ private:
 
 	void CreateMaterialConstructor();
 	void LoadMaterialPreset();
+	bool SaveMaterial(const output_vmt_t& output);
 	
+	void CheckCreateMissingPath();
+
 	void RemoveTextureFromOutputs(int id);
 	void RemoveMaterialFromOutputs(int id);
+
 
 private:
 	bool m_bOpenFirstTime;

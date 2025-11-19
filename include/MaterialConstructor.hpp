@@ -39,15 +39,16 @@ struct value_node_t {
 class MaterialConstructor {
 public:
 	MaterialConstructor(int id);
+	MaterialConstructor(int id, const char* json_template);
 	~MaterialConstructor();
 
 	bool Move();
-	void CreateMaterial(const std::string& texture_name);
+	void CreateMaterial(const std::string& texture_name, const std::filesystem::path& name);
 	const std::string GetMaterialName() const;
 private:
 	void DrawAddButtons();
 	void DrawNodeValues();
-
+	void LoadFromJSON(const char* filename);
 private:
 	std::string m_InternalName;
 	std::string m_MaterialName;

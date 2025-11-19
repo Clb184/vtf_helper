@@ -53,13 +53,17 @@ bool CreateSingleSelectDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_
 		}
 		CoUninitialize();
 	}
-	printf("Failed with HRESULT: %x", hr);
+	if(hr != ERROR_CANCELLED) {
+		printf("Failed with HRESULT: %x\n", hr);
+	}
 	return false;
 }
 
 bool CreateMultiSelectDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_cnt, std::vector<std::string>* result) {
 	//File Dialog
 	HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	bool on_success = false;
+
 	if (SUCCEEDED(hr)) {
 		IFileOpenDialog* pFileOpen;
 
@@ -80,6 +84,7 @@ bool CreateMultiSelectDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_c
 				printf("Trying to get results\n");
 				if (SUCCEEDED(pFileOpen->GetResults(&item_array))) {
 					DWORD count;
+					on_success = true;
 					item_array->GetCount(&count);
 					IShellItem* item;
 					for(DWORD i = 0; i < count; i++) {
@@ -95,7 +100,7 @@ bool CreateMultiSelectDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_c
 								wcstombs_s(&sz, buffer, 1024, pszFilePath, wcslen(pszFilePath));
 								CoTaskMemFree(pszFilePath);
 								result->emplace_back(buffer);
-								return true;
+								
 							}
 							item->Release();
 						}
@@ -106,8 +111,8 @@ bool CreateMultiSelectDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_c
 		}
 		CoUninitialize();
 	}
-	if(hr == ERROR_CANCELLED) {
-		printf("Failed with HRESULT: %x", hr);
+	if(hr != ERROR_CANCELLED) {
+		printf("Failed with HRESULT: %x\n", hr);
 	}
-	return false;
+	return on_success;
 }

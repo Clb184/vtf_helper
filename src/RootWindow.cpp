@@ -48,7 +48,7 @@ void RootWindow::Move() {
 		// Open a dialog to select files
 		OpenTextureDialog();
 	}
-	if(ImGui::MenuItem("Create Material")) {
+	if(ImGui::MenuItem("New Material")) {
 		// Create empty material template
 		CreateMaterialConstructor();
 	}
@@ -100,7 +100,7 @@ void RootWindow::MoveBaseVars() {
 		       	ImGuiWindowFlags_NoSavedSettings |
 		       	ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoResize
-		    );
+			);
 
 	ImGui::BeginGroup();
 	ImGui::Text("Base path    ");
@@ -116,11 +116,38 @@ void RootWindow::MoveBaseVars() {
 	ImGui::InputText("##material_path", &m_MaterialPath);
 	ImGui::EndGroup();
 
-	if(ImGui::Button("Convert materials")) {
+	if(ImGui::Button("Convert textures")) {
 		NormalizeString(&m_BasePath);
 		NormalizeString(&m_MaterialPath);
 		for(auto& cvt : m_CvtInstances){
 			cvt.SaveFile(std::filesystem::path(m_BasePath) / std::filesystem::path(m_MaterialPath));
+		}
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Create materials")){
+		NormalizeString(&m_BasePath);
+		NormalizeString(&m_MaterialPath);
+		if(m_MatCInstances.size() > 0) {
+			printf("Creating all materials\n");
+			CheckCreateMissingPath();
+			for(auto& out : m_OutputsList){
+				SaveMaterial(out);
+			}
+		}
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Save all")) {
+		NormalizeString(&m_BasePath);
+		NormalizeString(&m_MaterialPath);
+		CheckCreateMissingPath();
+		for(auto& cvt : m_CvtInstances){
+			cvt.SaveFile(std::filesystem::path(m_BasePath) / std::filesystem::path(m_MaterialPath));
+		}
+		if(m_MatCInstances.size() > 0) {
+			printf("Creating all materials\n");
+			for(auto& out : m_OutputsList){
+				SaveMaterial(out);
+			}
 		}
 	}
 	ImGui::End();
@@ -216,10 +243,8 @@ void RootWindow::MoveMaterialOutputs() {
 		ImGui::SameLine();
 		// Save	material
 		if(ImGui::Button(save_this.c_str())){
-			printf("Saving material\n");
-			if(m_MatCInstances.size() > 0){
-				m_MatCInstances[m_OutputsList[i].template_material].CreateMaterial(texture);
-			}
+			CheckCreateMissingPath();
+			SaveMaterial(m_OutputsList[i]);
 		}
 		ImGui::EndGroup();
 	}
@@ -236,6 +261,7 @@ void RootWindow::OpenTextureDialog() {
 	filter.pszSpec = L"*.png; *.jpg; *.tga; *.bmp";
 
 	on_success = CreateMultiSelectDialogWindows(&filter, 1, &tex_names);
+	printf("Received %d texture names\n", tex_names.size());
 #endif
 	if(false == on_success) return;
 
@@ -243,25 +269,34 @@ void RootWindow::OpenTextureDialog() {
 		printf("Load texture\n");
 		m_CvtInstances.emplace_back(m_TexConvID, tex.c_str());
 		printf("Added texconvert instance at %d with ID %d\n",
-		  	m_CvtInstances.size() -1,
+			m_CvtInstances.size() -1,
 			m_TexConvID
-		 	);
+			);
 		m_TexConvID++;
 	}
 }
 
 void RootWindow::OpenMaterialTemplateDialog() {
 	bool on_success = false;
-	std::vector<std::string> tex_names;
+	std::vector<std::string> mat_names;
 #ifdef WIN32
 	COMDLG_FILTERSPEC filter;
 	filter.pszName = L"Material Template (JSON)";
 	filter.pszSpec = L"*.json";
 
-	on_success = CreateMultiSelectDialogWindows(&filter, 1, &tex_names);
+	on_success = CreateMultiSelectDialogWindows(&filter, 1, &mat_names);
 #endif
 	if(false == on_success) return;
-
+	
+	for(auto& mat : mat_names){
+		printf("Load material template\n");
+		m_MatCInstances.emplace_back(m_MatConstID, mat.c_str());
+		printf("Added materialconst instance at %d with ID %d\n",
+		  	m_MatCInstances.size() -1,
+			m_MatConstID
+			);
+		m_MatConstID++;
+	}
 }
 
 
@@ -272,6 +307,35 @@ void RootWindow::CreateMaterialConstructor(){
 	m_MatConstID++;
 }
 
+bool RootWindow::SaveMaterial(const output_vmt_t& output) {
+	printf("Saving material\n");
+	printf("texid: %d, matid: %d\n", output.base_texture, output.template_material);
+	std::string texture = (output.base_texture > 0) ? m_CvtInstances[output.base_texture - 1].GetTextureName() : "<null>";
+	printf("Texture name for material is %s\n", texture.c_str());
+	if(m_MatCInstances.size() > 0){
+		std::filesystem::path out_p = std::filesystem::path(m_BasePath) /
+	      		std::filesystem::path(m_MaterialPath) /
+		       	std::filesystem::path(output.name + ".vmt");
+		m_MatCInstances[output.template_material].CreateMaterial(texture, out_p);
+		return true;
+	}
+}
+
+void RootWindow::CheckCreateMissingPath() {
+	std::filesystem::path target = std::filesystem::path(m_BasePath) / std::filesystem::path(m_MaterialPath);
+	if(target.string() == "") {
+		printf("Path not specified, skipping\n");
+		return;
+	}
+	printf("Looking for path %s\n", target.string().c_str());
+	if(!std::filesystem::exists(target)) {
+		printf("Path %s doesn't exist, creating it\n", target.string().c_str());
+		std::filesystem::create_directories(target);
+	}else {
+		printf("Path %s already exists\n", target.string().c_str());
+	}
+}
+
 void RootWindow::LoadMaterialPreset() {
 	
 }
@@ -279,11 +343,13 @@ void RootWindow::LoadMaterialPreset() {
 void RootWindow::RemoveTextureFromOutputs(int id) {
 	for(auto& o : m_OutputsList) {
 		o.base_texture -= (o.base_texture >= id);
+		if(o.base_texture < 0) o.base_texture = 0;
 	}
 }
 
 void RootWindow::RemoveMaterialFromOutputs(int id) {
 	for(auto& o : m_OutputsList) {
 		o.template_material -= (o.template_material >= id);
+		if(o.template_material < 0) o.template_material = 0;
 	}
 }
