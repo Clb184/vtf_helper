@@ -187,6 +187,7 @@ void RootWindow::MoveMaterialOutputs() {
 	if(ImGui::Button("Add output")) {
 		m_OutputsList.emplace_back();
 	}
+	ImGui::Text("Output count: %d", m_OutputsList.size());
 	ImGui::BeginGroup();
 	for(int i = 0; i < m_OutputsList.size(); i++) {
 		ImGui::BeginGroup();

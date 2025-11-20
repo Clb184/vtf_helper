@@ -16,7 +16,6 @@ public:
 	~TextureConvert();
 
 	bool Move();
-	bool ConvertToVTF(VTFImageFormat format);
 	void SetDelete();
 	void SaveFile(const std::filesystem::path& base_path);
 	const std::string GetTextureName() const;

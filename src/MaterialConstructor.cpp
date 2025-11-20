@@ -4,16 +4,19 @@
 #include "Helper.hpp"
 #include <fstream>
 #include "json.hpp"
+#include <iostream>
+#include <assert.h>
 
 MaterialConstructor::MaterialConstructor(int id) {
 	m_InternalName = "material " + std::to_string(id);
 	m_MaterialName = "Material " + std::to_string(id);
-	m_pNodes = nullptr;
+	m_ShaderType = "VertexLitGeneric";
 }
 
 MaterialConstructor::MaterialConstructor(int id, const char* json_template) {
 	m_InternalName = "material " + std::to_string(id);
 	m_MaterialName = "Material " + std::to_string(id);
+	m_ShaderType = "VertexLitGeneric";
 	LoadFromJSON(json_template);
 }
 
@@ -21,10 +24,39 @@ MaterialConstructor::~MaterialConstructor() {
 
 }
 
+bool MaterialConstructor::Move() {
+	bool is_open = true;
+	ImGui::Begin(m_InternalName.c_str(), &is_open, ImGuiWindowFlags_NoSavedSettings);
+
+	// Set material name (Also displayed on outputs window)
+	ImGui::InputText("Name", &m_MaterialName);
+	if(ImGui::Button("Save template")) {
+		// For now I use the name of the material template itself
+		SaveJSON((m_MaterialName + ".json").c_str());
+	}
+	DrawAddButtons();
+	DrawNodeValues();
+	ImGui::End();
+	if(!is_open) {
+		printf("Closing Material Constructor window\n");
+	}
+	return is_open;
+}
+
 void MaterialConstructor::CreateMaterial(const std::string& texture_name, const std::filesystem::path& name) {
 	std::string ret;
+	try {
+		nlohmann::json src;
+		nlohmann::json js;
+		AsJSON(&js);
+		src["material"].emplace_back(std::move(js));
+		std::cout << src.dump(4) << "\n";
+	}
+	catch(const std::exception& e) {
+		printf("JSON exception: %s\n", e.what());
+	}
 	printf("Texture name: %s\n", texture_name.c_str());
-	ret = "\"VertexLitGeneric\" {\n";
+	ret = "\"" + m_ShaderType + "\" {\n";
 	std::filesystem::path tex_path = RootWindow::GetMaterialPath() / std::filesystem::path(texture_name);
 	if(texture_name != "<null>") {
 		ret += "\t$basetexture \"" + tex_path.string() + "\"\n";
@@ -59,26 +91,56 @@ void MaterialConstructor::CreateMaterial(const std::string& texture_name, const 
 	return;
 }
 
-bool MaterialConstructor::Move() {
-	bool is_open = true;
-	ImGui::Begin(m_InternalName.c_str(), &is_open, ImGuiWindowFlags_NoSavedSettings);
-
-	ImGui::InputText("Name", &m_MaterialName);
-	DrawAddButtons();
-	DrawNodeValues();
-	ImGui::End();
-	if(!is_open) {
-		printf("Closing Material Constructor window\n");
-	}
-	return is_open;
-}
-
 const std::string MaterialConstructor::GetMaterialName() const {
 	return m_MaterialName;	
 }
 
+void MaterialConstructor::AsJSON(nlohmann::json* out) {
+	try {
+		// Create a json blob to hold the material information
+		nlohmann::json js;
+		js["name"] = m_MaterialName;
+		js["type"] = m_ShaderType;
+	
+		for(auto& node : m_Nodes){
+			NormalizeString(&node.name);
+			if(node.name == "") continue;
+			
+			auto& type = js["body"][node.name]["type"];
+			auto& value = js["body"][node.name]["value"];
+
+			switch(node.type){
+				case NODE_INTEGER: type = "integer"; break;
+				case NODE_FLOAT: type = "float"; break;
+				case NODE_FLOAT2: type = "float2"; break;
+				case NODE_FLOAT3: type = "float3"; break;
+				case NODE_FLOAT4: type = "float4"; break;
+				case NODE_COLOR: type = "color"; break;
+				case NODE_STRING: type = "string";  break;
+			}
+			switch(node.type){
+				case NODE_INTEGER: value = node.integer; break;
+				case NODE_FLOAT: value = node.single; break;
+				case NODE_FLOAT2: value = node.float2; break;
+				case NODE_FLOAT3: value = node.float3; break;
+				case NODE_FLOAT4: value = node.float4; break;
+				case NODE_COLOR: value = node.float4; break;
+				case NODE_STRING: value = node.string;  break;
+			}
+		}
+		std::cout << js.dump(4) << "\n";
+		*out = std::move(js);
+	}
+	catch(const std::exception& e) {
+		printf("JSON error: %s\n", e.what());
+	}
+}
+
 void MaterialConstructor::DrawAddButtons() {
 	ImGui::BeginGroup();
+	// Display how many components there are
+	ImGui::Text("Component count: %d", m_Nodes.size());
+
 	// To add values of different kinds
 	if(ImGui::Button("Add integer")) {
 		m_Nodes.emplace_back(NODE_INTEGER);
@@ -88,15 +150,15 @@ void MaterialConstructor::DrawAddButtons() {
 		m_Nodes.emplace_back(NODE_FLOAT);
 	}
 	ImGui::SameLine();
-	if(ImGui::Button("Add float 2")) {
+	if(ImGui::Button("Add float2")) {
 		m_Nodes.emplace_back(NODE_FLOAT2);
 	}
 	ImGui::SameLine();
-	if(ImGui::Button("Add float 3")) {
+	if(ImGui::Button("Add float3")) {
 		m_Nodes.emplace_back(NODE_FLOAT3);
 	}
 	//ImGui::SameLine();
-	if(ImGui::Button("Add float 4")) {
+	if(ImGui::Button("Add float4")) {
 		m_Nodes.emplace_back(NODE_FLOAT4);
 	}
 	ImGui::SameLine();
@@ -131,7 +193,26 @@ void MaterialConstructor::DrawNodeValues() {
 	}
 	ImGui::EndGroup();
 }
-#include <iostream>
+
+void MaterialConstructor::SaveJSON(const char* filename) {
+	try {
+		// The output JSON file
+		std::ofstream output(filename, std::ios::out);
+		printf("Saving material template %s as JSON (%s)\n", m_MaterialName.c_str(), filename);
+		if(output.is_open()) {
+			nlohmann::json js;
+			AsJSON(&js);
+			output << js.dump(4);
+			printf("Material template saved");
+		} else {
+			printf("Failed saving material template\n");
+		}
+	}
+	catch(const std::exception& e) {
+		printf("JSON exception: %s\n", e.what());
+	}
+}
+
 void MaterialConstructor::LoadFromJSON(const char* filename) {
 	// Material JSON file
 	std::ifstream material_src;

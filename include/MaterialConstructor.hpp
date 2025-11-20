@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <json.hpp>
 
 enum NODE_TYPE {
 	NODE_INTEGER,
@@ -45,6 +46,9 @@ public:
 	bool Move();
 	void CreateMaterial(const std::string& texture_name, const std::filesystem::path& name);
 	const std::string GetMaterialName() const;
+
+	void AsJSON(nlohmann::json* ret);
+	void SaveJSON(const char* filename);
 private:
 	void DrawAddButtons();
 	void DrawNodeValues();
@@ -53,7 +57,6 @@ private:
 	std::string m_InternalName;
 	std::string m_MaterialName;
 	std::string m_ShaderType;
-	VTFLib::Nodes::CVMTGroupNode* m_pNodes;
 	std::vector<value_node_t> m_Nodes;
 };
 
