@@ -49,11 +49,12 @@ public:
 
 	void AsJSON(nlohmann::json* ret);
 	void SaveJSON(const char* filename);
+	bool LoadFromJSON(nlohmann::json& js);
 private:
 	void DrawAddButtons();
 	void DrawNodeValues();
-	void LoadFromJSON(const char* filename);
 	void SaveTemplate();
+	void LoadFromFile(const char* filename);
 private:
 	std::string m_InternalName;
 	std::string m_MaterialName;

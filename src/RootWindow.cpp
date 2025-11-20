@@ -1,6 +1,9 @@
 #include "RootWindow.hpp"
 #include "imgui_stdlib.h"
 #include "Helper.hpp"
+#include "json.hpp"
+#include <fstream>
+#include <iostream>
 
 std::string RootWindow::m_BasePath;
 std::string RootWindow::m_MaterialPath;
@@ -44,6 +47,14 @@ void RootWindow::Move() {
 
 	// The menu bar where some useful stuff is
 	ImGui::BeginMainMenuBar();
+	if(ImGui::MenuItem("Save Project")){
+		// Save the project itself
+		SaveProject();
+	}
+	if(ImGui::MenuItem("Open Project")){
+		// Do open project
+		OpenProject();
+	}
 	if(ImGui::MenuItem("Load Texture")) {
 		// Open a dialog to select files
 		OpenTextureDialog();
@@ -352,5 +363,104 @@ void RootWindow::RemoveMaterialFromOutputs(int id) {
 	for(auto& o : m_OutputsList) {
 		o.template_material -= (o.template_material >= id);
 		if(o.template_material < 0) o.template_material = 0;
+	}
+}
+
+
+void RootWindow::OpenProject() {
+	bool on_success = false;
+	std::string project_name;
+#ifdef WIN32
+	COMDLG_FILTERSPEC filter;
+	filter.pszName = L"Project files (VWP)";
+	filter.pszSpec = L"*.vwp";
+
+	on_success = CreateSingleSelectDialogWindows(&filter, 1, &project_name);
+#endif
+	if(false == on_success) return;
+		
+	try {
+		nlohmann::json js;
+		std::ifstream input;
+		input.open(project_name.c_str());
+		if(input.is_open()){
+			js = nlohmann::json::parse(input);
+
+			m_BasePath = js["base_path"];
+			m_MaterialPath = js["material_path"];
+			for(auto& tex : js["textures"]){
+				std::string name = tex["source"];
+				auto& cvt = m_CvtInstances.emplace_back(m_TexConvID, name.c_str());
+				cvt.SetTextureFlags(tex["flags"]);
+				cvt.SetTextureFormat(tex["format"]);
+				m_TexConvID++;
+			}
+			for(nlohmann::json& mat : js["materials"]){
+				auto& matc = m_MatCInstances.emplace_back(m_MatConstID);
+				matc.LoadFromJSON(mat);
+				m_MatConstID++;
+			}
+			for(auto& o : js["outputs"]) {
+				output_vmt_t ovmt;
+				ovmt.name = o["name"];
+				ovmt.base_texture = o["base_texture"];
+				ovmt.template_material = o["template_material"];
+				m_OutputsList.emplace_back(std::move(ovmt));
+			}
+		} else {
+			printf("Couldn't open project file\n");
+		}
+	}
+	catch(const std::exception& e) {
+		printf("JSON exception: %s\n", e.what());
+	}
+}
+
+void RootWindow::SaveProject() {
+	bool on_success = false;
+	std::string project_name;
+#ifdef WIN32
+	COMDLG_FILTERSPEC filter;
+	filter.pszName = L"Project files (VWP)";
+	filter.pszSpec = L"*.vwp";
+
+	on_success = CreateSaveDialogWindows(&filter, 1, &project_name, L"vwp");
+#endif
+	if(false == on_success) return;
+	
+	try {
+		printf("Saving project file %s\n", project_name.c_str());
+		std::ofstream of(project_name.c_str(), std::ios::out);
+		nlohmann::json js;
+		js["base_path"] = m_BasePath;
+		js["material_path"] = m_MaterialPath;
+		for(auto& tex : m_CvtInstances) {
+			nlohmann::json tex_js;
+			tex.AsJSON(&tex_js);
+			js["textures"].emplace_back(std::move(tex_js));
+		}
+		for(auto& mat : m_MatCInstances){
+			nlohmann::json mat_js;
+			mat.AsJSON(&mat_js);
+			js["materials"].emplace_back(std::move(mat_js));
+		}
+		for(auto& o : m_OutputsList) {
+			nlohmann::json o_js;
+			o_js["name"] = o.name;
+			o_js["base_texture"] = o.base_texture;
+			o_js["template_material"] = o.template_material;
+			js["outputs"].emplace_back(std::move(o_js));
+		}
+		
+		std::cout << js.dump(4) << "\n";
+		if(of.is_open()) {
+			of << js.dump(4);
+			printf("Project saved\n");
+		} else {
+			printf("Failed saving project file\n");
+		}
+	}
+	catch(const std::exception& e){
+		printf("JSON exception: %s\n", e.what());
 	}
 }

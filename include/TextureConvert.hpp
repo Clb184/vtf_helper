@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <string>
 #include <filesystem>
+#include "json.hpp"
 
 // Texture convert window and its contents
 class TextureConvert {
@@ -18,7 +19,16 @@ public:
 	bool Move();
 	void SetDelete();
 	void SaveFile(const std::filesystem::path& base_path);
+
+	void SetTextureFlags(int flags);
+	void SetTextureFormat(int format);
+
+	const std::string GetTextureSource() const;
 	const std::string GetTextureName() const;
+	int GetTextureFlags();
+	int GetTextureFormat();
+	
+	void AsJSON(nlohmann::json* out);
 private:
 	bool LoadTextureFromFile(const char* filename);
 

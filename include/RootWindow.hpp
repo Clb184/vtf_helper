@@ -39,7 +39,8 @@ private:
 	void RemoveTextureFromOutputs(int id);
 	void RemoveMaterialFromOutputs(int id);
 
-
+	void OpenProject();
+	void SaveProject();
 private:
 	bool m_bOpenFirstTime;
 	float m_Width;

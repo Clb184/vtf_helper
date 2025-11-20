@@ -17,7 +17,7 @@ MaterialConstructor::MaterialConstructor(int id, const char* json_template) {
 	m_InternalName = "material " + std::to_string(id);
 	m_MaterialName = "Material " + std::to_string(id);
 	m_ShaderType = "VertexLitGeneric";
-	LoadFromJSON(json_template);
+	LoadFromFile(json_template);
 }
 
 MaterialConstructor::~MaterialConstructor() {
@@ -213,83 +213,75 @@ void MaterialConstructor::SaveJSON(const char* filename) {
 	}
 }
 
-void MaterialConstructor::LoadFromJSON(const char* filename) {
-	// Material JSON file
-	std::ifstream material_src;
-	
-	// Open file and do checks
-	material_src.open(filename);
-	if(material_src.is_open()){
-		nlohmann::json js = nlohmann::json::parse(material_src);
-		try {
-			std::string name = js["name"];
-			std::string type = js["type"];
-			printf("Name: %s, Type: %s\n", name.c_str(), type.c_str());
+bool MaterialConstructor::LoadFromJSON(nlohmann::json& js) {
+	try {
+		std::string name = js["name"];
+		std::string type = js["type"];
+		printf("Name: %s, Type: %s\n", name.c_str(), type.c_str());
 
-			m_MaterialName = name;
-			m_ShaderType = type;
+		m_MaterialName = name;
+		m_ShaderType = type;
 			
-			auto& body = js["body"];
-			for(nlohmann::json::iterator it = js["body"].begin(); it != js["body"].end(); it++){
-				printf("Key: %s\n", it.key().c_str());
-				std::string node_type = body[it.key()]["type"];
-				printf("Node type: %s\n", node_type.c_str());
-				if (node_type == "integer"){
-					int value = body[it.key()]["value"];
-					value_node_t node(NODE_INTEGER);
-					node.name = it.key();
-					node.integer = value;
-					m_Nodes.emplace_back(node);
-				}
-				else if (node_type == "float"){
-					float value = body[it.key()]["value"];
-					value_node_t node(NODE_FLOAT);
-					node.name = it.key();
-					node.single = value;
-					m_Nodes.emplace_back(node);
-				}
-				else if (node_type == "float2"){
-					std::array<float, 2> value = body[it.key()]["value"];
-					value_node_t node(NODE_FLOAT2);
-					node.name = it.key();
-					memcpy(node.float2, value.data(), sizeof(float) * 2);
-					m_Nodes.emplace_back(node);
-				}
-				else if (node_type == "float3"){
-					std::array<float, 3> value = body[it.key()]["value"];
-					value_node_t node(NODE_FLOAT3);
-					node.name = it.key();
-					memcpy(node.float4, value.data(), sizeof(float) * 3);
-					m_Nodes.emplace_back(node);
-				}
-				else if (node_type == "float4"){
-					std::array<float, 4> value = body[it.key()]["value"];
-					value_node_t node(NODE_FLOAT4);
-					node.name = it.key();
-					memcpy(node.float4, value.data(), sizeof(float) * 4);
-					m_Nodes.emplace_back(node);
-				}
-				else if (node_type == "color"){
-					std::array<float, 4> value = body[it.key()]["value"];
-					value_node_t node(NODE_COLOR);
-					node.name = it.key();
-					memcpy(node.float4, value.data(), sizeof(float) * 4);
-					m_Nodes.emplace_back(node);
-				}
-				else if (node_type == "string"){
-					value_node_t node(NODE_STRING);
-					node.name = it.key();
-					node.string = body[it.key()]["value"];
-					m_Nodes.emplace_back(node);
-				}
+		auto& body = js["body"];
+		for(nlohmann::json::iterator it = js["body"].begin(); it != js["body"].end(); it++){
+			printf("Key: %s\n", it.key().c_str());
+			std::string node_type = body[it.key()]["type"];
+			printf("Node type: %s\n", node_type.c_str());
+			if (node_type == "integer"){
+				int value = body[it.key()]["value"];
+				value_node_t node(NODE_INTEGER);
+				node.name = it.key();
+				node.integer = value;
+				m_Nodes.emplace_back(node);
 			}
-
-		}
-		catch(const std::exception& e){
-			printf("Exception reached: %s\n", e.what());
+			else if (node_type == "float"){
+				float value = body[it.key()]["value"];
+				value_node_t node(NODE_FLOAT);
+				node.name = it.key();
+				node.single = value;
+				m_Nodes.emplace_back(node);
+			}
+			else if (node_type == "float2"){
+				std::array<float, 2> value = body[it.key()]["value"];
+				value_node_t node(NODE_FLOAT2);
+				node.name = it.key();
+				memcpy(node.float2, value.data(), sizeof(float) * 2);
+				m_Nodes.emplace_back(node);
+			}
+			else if (node_type == "float3"){
+				std::array<float, 3> value = body[it.key()]["value"];
+				value_node_t node(NODE_FLOAT3);
+				node.name = it.key();
+				memcpy(node.float4, value.data(), sizeof(float) * 3);
+				m_Nodes.emplace_back(node);
+			}
+			else if (node_type == "float4"){
+				std::array<float, 4> value = body[it.key()]["value"];
+				value_node_t node(NODE_FLOAT4);
+				node.name = it.key();
+				memcpy(node.float4, value.data(), sizeof(float) * 4);
+				m_Nodes.emplace_back(node);
+			}
+			else if (node_type == "color"){
+				std::array<float, 4> value = body[it.key()]["value"];
+				value_node_t node(NODE_COLOR);
+				node.name = it.key();
+				memcpy(node.float4, value.data(), sizeof(float) * 4);
+				m_Nodes.emplace_back(node);
+			}
+			else if (node_type == "string"){
+				value_node_t node(NODE_STRING);
+				node.name = it.key();
+				node.string = body[it.key()]["value"];
+				m_Nodes.emplace_back(node);
+			}
 		}
 	}
-	
+	catch(const std::exception& e){
+		printf("Exception reached: %s\n", e.what());
+		return false;
+	}
+	return true;
 }
 
 void MaterialConstructor::SaveTemplate() {
@@ -304,4 +296,16 @@ void MaterialConstructor::SaveTemplate() {
 		SaveJSON((name).c_str());
 	}
 #endif
+}
+
+void MaterialConstructor::LoadFromFile(const char* filename) {
+	// Material JSON file
+	std::ifstream material_src;
+	
+	// Open file and do checks
+	material_src.open(filename);
+	if(material_src.is_open()){
+		nlohmann::json js = nlohmann::json::parse(material_src);
+		LoadFromJSON(js);
+	}
 }

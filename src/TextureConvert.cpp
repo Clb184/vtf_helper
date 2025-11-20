@@ -4,6 +4,7 @@
 #include "RootWindow.hpp"
 #include "imgui_stdlib.h"
 #include "Helper.hpp"
+#include <assert.h>
 
 VTFImageFormat ID2Format(int id) {
 	switch(id) {
@@ -201,6 +202,14 @@ void TextureConvert::SetDelete() {
 	m_bAvoidFree = false;
 }
 
+void TextureConvert::SetTextureFlags(int flags) {
+	m_CreateOptions.uiFlags = flags;
+}
+
+void TextureConvert::SetTextureFormat(int format) {
+	m_TextureFormat = format;
+}
+
 void TextureConvert::SaveFile(const std::filesystem::path& base_path) {
 	if(nullptr != m_pPixelData) {
 		NormalizeString(&m_OutputName);
@@ -233,8 +242,36 @@ void TextureConvert::SaveFile(const std::filesystem::path& base_path) {
 	}
 }
 
+
+const std::string TextureConvert::GetTextureSource() const {
+	return m_InputName;
+}
+
 const std::string TextureConvert::GetTextureName() const {
 	return m_OutputName;
+}
+
+int TextureConvert::GetTextureFlags() {
+	return m_CreateOptions.uiFlags;
+}
+
+int TextureConvert::GetTextureFormat() {
+	return m_TextureFormat;
+}
+
+void TextureConvert::AsJSON(nlohmann::json* out) {
+	assert(nullptr != out);
+	try {
+		nlohmann::json js;
+		js["source"] = m_InputName;
+		js["flags"] = m_CreateOptions.uiFlags;
+		js["format"] = m_TextureFormat;
+
+		*out = std::move(js);
+	}
+	catch(const std::exception& e){
+		printf("JSON exception: %s\n", e.what());
+	}
 }
 
 bool TextureConvert::LoadTextureFromFile(const char* filename) {
