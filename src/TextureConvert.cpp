@@ -100,7 +100,7 @@ TextureConvert::TextureConvert(int id, const char* filename) {
 
 TextureConvert::~TextureConvert() {
 	if(m_pPixelData && !m_bAvoidFree) {
-		stbi_image_free(m_pPixelData);
+		free(m_pPixelData);
 		m_pPixelData = nullptr;
 	}
 }
@@ -123,7 +123,7 @@ bool TextureConvert::Move() {
 		if(on_success) {
 			printf("Loading %s\n", m_InputName.c_str());
 			if(nullptr != m_pPixelData) {
-				stbi_image_free(m_pPixelData);
+				free(m_pPixelData);
 				glDeleteTextures(1, &m_TextureID);
 			}
 			LoadTextureFromFile(m_InputName.c_str());
@@ -244,18 +244,68 @@ bool TextureConvert::LoadTextureFromFile(const char* filename) {
 	// printf("Loading texture \"%s\"\n", filename);
 	if(!(pixels = stbi_load(filename, &w, &h, &channel, 0))) {
 		printf("Failed loading texture \"%s\"\n", filename);
+		m_Width = 256;
+		m_Height = 256;
+		m_pPixelData = (uint8_t*)calloc(256 * 256, 4);
 		return false;
 	}
 
 	printf("Loaded texture \"%s\" (w: %d h: %d channels: %d)\n", filename, w, h, channel);
 	
+	// Fine, I'll do it myself (Manual forced alpha or other channels)
+	uint8_t* ndata = (uint8_t*)calloc(w * h, 4);
+
+	switch(channel) {
+	case 1:
+		// All channels with same value
+		for(int j = 0; j < h; j++) {
+			for(int i = 0; i < w; i++){
+				int idx = i + w * j;
+				ndata[idx * 4] = pixels[idx];
+				ndata[idx * 4 + 1] = pixels[idx];
+				ndata[idx * 4 + 2] = pixels[idx];
+				ndata[idx * 4 + 3] = pixels[idx];
+			}
+		}
+		break;
+	case 2:
+		// I've never seen textures with two channels only	
+		for(int j = 0; j < h; j++) {
+			for(int i = 0; i < w; i++){
+				int idx = i + w * j;
+				ndata[idx * 4] = pixels[idx * 2];
+				ndata[idx * 4 + 1] = pixels[idx * 2 + 1];
+				ndata[idx * 4 + 2] = 255;
+				ndata[idx * 4 + 3] = 255;
+			}
+		}
+		break;
+	case 3:
+		// Alpha guaranteed to be 255
+		for(int j = 0; j < h; j++) {
+			for(int i = 0; i < w; i++){
+				int idx = i + w * j;
+				ndata[idx * 4] = pixels[idx * 3];
+				ndata[idx * 4 + 1] = pixels[idx * 3 + 1];
+				ndata[idx * 4 + 2] = pixels[idx * 3 + 1];
+				ndata[idx * 4 + 3] = 255;
+			}
+		}
+		break;
+	case 4:
+		// Just copy
+		memcpy(ndata, pixels, w * h * 4);
+		break;
+	}
+
 	GLuint tex = 0;
 	GLenum format = channel == 4 ? GL_RGBA : (channel == 3) ? GL_RGB : (channel == 2) ? GL_RG : GL_RED;
 	glCreateTextures(GL_TEXTURE_2D, 1, &tex);
 	glTextureStorage2D(tex, 1, GL_RGBA32F, w, h);
 	glTextureSubImage2D(tex, 0, 0, 0, w, h, format, GL_UNSIGNED_BYTE, pixels);
+	stbi_image_free(pixels);
 
-	m_pPixelData = pixels;
+	m_pPixelData = ndata;
 	m_Width = w;	
 	m_Height = h;
 	m_TextureID = tex;
