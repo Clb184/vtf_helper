@@ -46,26 +46,41 @@ void RootWindow::Move() {
 		);*/
 
 	// The menu bar where some useful stuff is
+	bool new_proj = false;
+	bool about = false;
 	ImGui::BeginMainMenuBar();
-	if(ImGui::MenuItem("Save Project")){
-		// Save the project itself
-		SaveProject();
-	}
-	if(ImGui::MenuItem("Open Project")){
-		// Do open project
-		OpenProject();
+	if(ImGui::BeginMenu("Project")){
+		if(ImGui::MenuItem("New Project")) {
+			// Workaround for opening the popup
+			new_proj = true;
+		}
+		if(ImGui::MenuItem("Open Project")){
+			// Do open project
+			OpenProject();
+		}
+		if(ImGui::MenuItem("Save Project")){
+			// Save the project itself
+			SaveProject();
+		}
+		ImGui::EndMenu();
 	}
 	if(ImGui::MenuItem("Load Texture")) {
 		// Open a dialog to select files
 		OpenTextureDialog();
 	}
-	if(ImGui::MenuItem("New Material")) {
-		// Create empty material template
-		CreateMaterialConstructor();
+	if(ImGui::BeginMenu("Material")) {
+		if(ImGui::MenuItem("New Material")) {
+			// Create empty material template
+			CreateMaterialConstructor();
+		}
+		if(ImGui::MenuItem("Load Material Preset")) {
+			// Do some material preset loading
+			OpenMaterialTemplateDialog();
+		}
+		ImGui::EndMenu();
 	}
-	if(ImGui::MenuItem("Load Material Preset")) {
-		// Do some material preset loading
-		OpenMaterialTemplateDialog();
+	if(ImGui::MenuItem("About")){
+		about = true;
 	}
 	ImGui::EndMainMenuBar();
 	
@@ -90,6 +105,34 @@ void RootWindow::Move() {
 
 	// Move the material constructor
 	MoveMaterialConstructors();
+	
+	// New project confirm
+	if(new_proj) {
+		ImGui::OpenPopup("Create new project");
+	}
+	if(about) {
+		ImGui::OpenPopup("About VTF Workbench");
+	}
+	
+	if(ImGui::BeginPopupModal("Create new project", nullptr, ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+		ImGui::Text("Are you sure you want to create a new project?");
+		ImGui::Text("Progress not saved will be lost");
+		if(ImGui::Button("Confirm")) {
+			ClearWorkspace();
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::SameLine();
+		if(ImGui::Button("Cancel")) {
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	} 
+	if(ImGui::BeginPopup("About VTF Workbench", ImGuiWindowFlags_NoSavedSettings)) {
+		ImGui::Text("VTF Workbench version %s by Clb184", VTFW_VERSION);
+		ImGui::Text("See licenses for this project included\nwith the binary or the source code");
+		ImGui::Text("2025 - Clb184");
+		ImGui::EndPopup();
+	}
 
 	// End main window
 	//ImGui::End();
@@ -379,6 +422,7 @@ void RootWindow::OpenProject() {
 #endif
 	if(false == on_success) return;
 		
+	ClearWorkspace();
 	try {
 		nlohmann::json js;
 		std::ifstream input;
@@ -388,6 +432,7 @@ void RootWindow::OpenProject() {
 
 			m_BasePath = js["base_path"];
 			m_MaterialPath = js["material_path"];
+
 			for(auto& tex : js["textures"]){
 				std::string name = tex["source"];
 				auto& cvt = m_CvtInstances.emplace_back(m_TexConvID, name.c_str());
@@ -463,4 +508,15 @@ void RootWindow::SaveProject() {
 	catch(const std::exception& e){
 		printf("JSON exception: %s\n", e.what());
 	}
+}
+
+void RootWindow::ClearWorkspace() {
+	for(auto& tex : m_CvtInstances){
+		tex.SetDelete();
+	}	
+	m_CvtInstances.clear();
+	m_MatCInstances.clear();
+	m_OutputsList.clear();
+	m_TexConvID = 0;
+	m_MatConstID = 0;
 }

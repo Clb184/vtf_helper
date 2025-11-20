@@ -7,6 +7,8 @@
 #include <vector>
 #include <filesystem>
 
+#define VTFW_VERSION "1.0"
+
 struct output_vmt_t {
 	std::string name;
 	int base_texture = 0;
@@ -41,6 +43,8 @@ private:
 
 	void OpenProject();
 	void SaveProject();
+
+	void ClearWorkspace();
 private:
 	bool m_bOpenFirstTime;
 	float m_Width;
