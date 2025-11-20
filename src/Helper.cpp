@@ -18,26 +18,23 @@ bool CreateSingleSelectDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_
 	//File Dialog
 	HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 	if (SUCCEEDED(hr)) {
-		IFileOpenDialog* pFileOpen;
+		IFileOpenDialog* dlg;
 
 		// Create the FileOpenDialog object.
-		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
-		hr = pFileOpen->SetFileTypes(filter_cnt, filter_data);
-		if (SUCCEEDED(hr)) {
+		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL, IID_IFileOpenDialog, reinterpret_cast<void**>(&dlg));
+		if (SUCCEEDED(dlg->SetFileTypes(filter_cnt, filter_data))) {
 			// Show the Open dialog box.
-			hr = pFileOpen->Show(NULL);
+			hr = dlg->Show(NULL);
 
 			// Get the file name from the dialog box.
 			if (SUCCEEDED(hr)) {
-				IShellItem* pItem;
-				hr = pFileOpen->GetResult(&pItem);
+				IShellItem* item;
 				printf("Trying to get result\n");
-				if (SUCCEEDED(hr)) {
+				if (SUCCEEDED(dlg->GetResult(&item))) {
 					PWSTR pszFilePath;
-					hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
 					printf("Trying to get DisplayName\n");
 					// Display the file name to the user.
-					if (SUCCEEDED(hr)) {
+					if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath))) {
 						char buffer[1024] = "";
 						size_t sz = 0;
 						printf("Selection: %ls\n", pszFilePath);
@@ -46,10 +43,10 @@ bool CreateSingleSelectDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_
 						*result = std::string(buffer);
 						return true;
 					}
-					pItem->Release();
+					item->Release();
 				}
 			}
-			pFileOpen->Release();
+			dlg->Release();
 		}
 		CoUninitialize();
 	}
@@ -115,4 +112,46 @@ bool CreateMultiSelectDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_c
 		printf("Failed with HRESULT: %x\n", hr);
 	}
 	return on_success;
+}
+
+bool CreateSaveDialogWindows(COMDLG_FILTERSPEC* filter_data, int filter_cnt, std::string* result, LPCWSTR default_ext) {
+	//File Dialog
+	HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	if (SUCCEEDED(hr)) {
+		IFileSaveDialog* dlg;
+		// Create the FileOpenDialog object.
+		hr = CoCreateInstance(CLSID_FileSaveDialog, NULL, CLSCTX_ALL, IID_IFileSaveDialog, reinterpret_cast<void**>(&dlg));
+		if (SUCCEEDED(dlg->SetFileTypes(filter_cnt, filter_data))) {
+			// Show the Open dialog box.
+			dlg->SetDefaultExtension(default_ext);
+			hr = dlg->Show(NULL);
+
+			// Get the file name from the dialog box.
+			if (SUCCEEDED(hr)) {
+				IShellItem* item;
+				printf("Trying to get result\n");
+				if (SUCCEEDED(dlg->GetResult(&item))) {
+					PWSTR pszFilePath;
+					printf("Trying to get DisplayName\n");
+					// Display the file name to the user.
+					if (SUCCEEDED(item->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath))) {
+						char buffer[1024] = "";
+						size_t sz = 0;
+						printf("Selection: %ls\n", pszFilePath);
+						wcstombs_s(&sz, buffer, 1024, pszFilePath, wcslen(pszFilePath));
+						CoTaskMemFree(pszFilePath);
+						*result = std::string(buffer);
+						return true;
+					}
+					item->Release();
+				}
+			}
+			dlg->Release();
+		}
+		CoUninitialize();
+	}
+	if(hr != ERROR_CANCELLED) {
+		printf("Failed with HRESULT: %x\n", hr);
+	}
+	return false;
 }

@@ -32,7 +32,7 @@ bool MaterialConstructor::Move() {
 	ImGui::InputText("Name", &m_MaterialName);
 	if(ImGui::Button("Save template")) {
 		// For now I use the name of the material template itself
-		SaveJSON((m_MaterialName + ".json").c_str());
+		SaveTemplate();
 	}
 	DrawAddButtons();
 	DrawNodeValues();
@@ -290,4 +290,18 @@ void MaterialConstructor::LoadFromJSON(const char* filename) {
 		}
 	}
 	
+}
+
+void MaterialConstructor::SaveTemplate() {
+	std::string name;
+#ifdef WIN32
+	COMDLG_FILTERSPEC filter;
+	filter.pszName = L"JSON template";
+	filter.pszSpec = L"*.json";
+	printf("Saving template (Windows save dialog)\n");
+	if(CreateSaveDialogWindows(&filter, 1, &name, L"json")) {
+		printf("Got %s as file name\n", name.c_str());
+		SaveJSON((name).c_str());
+	}
+#endif
 }

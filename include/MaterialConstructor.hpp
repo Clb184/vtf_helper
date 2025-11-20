@@ -53,6 +53,7 @@ private:
 	void DrawAddButtons();
 	void DrawNodeValues();
 	void LoadFromJSON(const char* filename);
+	void SaveTemplate();
 private:
 	std::string m_InternalName;
 	std::string m_MaterialName;
